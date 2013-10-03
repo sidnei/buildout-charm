@@ -1,0 +1,25 @@
+options:
+  service-user:
+    default: buildout
+    type: string
+    description: User to run buildout and buildout-based services as.
+  service-group:
+    default: buildout
+    type: string
+    description: Group to run buildout and buildout-based services as.
+  packages:
+    default: "python-dev"
+    type: string
+    description: Comma-separated list of packages to install
+  buildout-dir:
+    default: "/srv/buildout"
+    type: string
+    description: Directory where buildout config will be saved and executed.
+  buildout:
+    default: ""
+    type: string
+    description: Full buildout config to use for this service.
+  buildout-version:
+    default: ""
+    type: string
+    description: Which buildout version to easy-install into the virtualenv created.
