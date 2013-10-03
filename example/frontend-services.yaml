@@ -1,0 +1,17 @@
+- service_name: plone
+  service_host: 0.0.0.0
+  service_port: 80
+  service_options:
+    - mode http
+    - option httplog
+    - balance uri
+    - hash-type consistent
+    - timeout client 5s
+    - timeout server 60s
+    - reqadd  X-Balancer-Name:\ plone
+    - option http-server-close
+  server_options:
+    - check inter 2000
+    - rise 2
+    - fall 5
+    - maxconn 4

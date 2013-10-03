@@ -1,11 +1,13 @@
 #!/usr/bin/python
 
+import contextlib
+import hashlib
+import io
 import os
+import socket
 import subprocess
 import sys
-import contextlib
-import io
-import hashlib
+import yaml
 
 from shutil import copy2 as copy
 from os import (
@@ -26,6 +28,8 @@ from charmhelpers.core.hookenv import (
     Hooks,
     config as config_get,
     log,
+    relations_of_type,
+    relation_set,
     )
 
 hooks = Hooks()
@@ -127,6 +131,18 @@ def create_service_user(service_user):
              "--gid", str(service_gid), service_user])
 
 
+def get_hostname(host=None):
+    my_host = socket.gethostname()
+    if host is None or host == "0.0.0.0":
+        # If the listen ip has been set to 0.0.0.0 then pass back the hostname
+        return socket.getfqdn(my_host)
+    elif host == "localhost":
+        # If the fqdn lookup has returned localhost (lxc setups) then return
+        # hostname
+        return my_host
+    return host
+
+
 @hooks.hook("config-changed")
 def config_changed():
     config = config_get()
@@ -137,11 +153,12 @@ def config_changed():
     create_service_group(config["service-group"])
     create_service_user(config["service-user"])
 
-    if not exists(config["buildout-dir"]):
-        makedirs(config["buildout-dir"])
-    chown(config["buildout-dir"],
-          service_uid,
-          service_gid)
+    for d in (config["buildout-dir"],
+              join(config["buildout-dir"], "cache"),
+              join(config["buildout-dir"], "var")):
+        if not exists(d):
+            makedirs(d)
+        chown(d, service_uid, service_gid)
 
     buildout_cfg = join(config["buildout-dir"], "buildout.cfg")
     if config["buildout"].strip():
@@ -152,18 +169,45 @@ def config_changed():
 
     env = os.environ.copy()
     env["PYTHONUNBUFFERED"] = "true"
+    env["PYTHONDONTWRITEBYTECODE"] = "true"
+    env["PYTHONWARNINGS"] = "ignore"
+
+    buildout_proxy = sorted(relations_of_type("buildout-proxy"))
+    if buildout_proxy:
+        # We assume there's only one proxy setup here, and pick the first one.
+        env["http_proxy"] = str("http://%s:%s/" % (
+            buildout_proxy[0]["private-address"],
+            buildout_proxy[0]["port"]))
 
     with cd(config["buildout-dir"]):
         if not exists(join(config["buildout-dir"], "venv")):
-            run(["sudo", "-u", config["service-user"], "-n", "--",
+            run(["sudo", "-E", "-u", config["service-user"], "-n", "--",
                  "virtualenv", "--no-site-packages", "venv"], env=env)
         buildout = "zc.buildout"
         if config["buildout-version"]:
             buildout += "==" + config["buildout-version"]
-        run(["sudo", "-u", config["service-user"], "-n", "--",
+        run(["sudo", "-E", "-u", config["service-user"], "-n", "--",
              "./venv/bin/easy_install", buildout], env=env)
-        run(["sudo", "-u", config["service-user"], "-n", "--",
+        run(["sudo", "-E", "-u", config["service-user"], "-n", "--",
              "./venv/bin/buildout", "-vv"], env=env)
+
+
+@hooks.hook("website-relation-joined")
+def website_relation():
+    config = config_get()
+    settings_file = join(config["buildout-dir"], "parts",
+                         "website-relation.yaml")
+    if not exists(settings_file):
+        return
+
+    with open(settings_file, "r") as f:
+        relation_settings = yaml.safe_load(f)
+
+    relation_settings["hostname"] = get_hostname()
+
+    # XXX yaml might return unicode in either keys or values. relation_set
+    # should make sure they are strings.
+    relation_set(**relation_settings)
 
 
 if __name__ == "__main__":

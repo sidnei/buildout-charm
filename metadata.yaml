@@ -10,3 +10,6 @@ categories: ["misc"]
 provides:
   website:
     interface: http
+requires:
+  buildout-proxy:
+    interface: http

@@ -1,0 +1,14 @@
+- service_name: plone
+  service_host: 0.0.0.0
+  service_port: 10001
+  service_options:
+    - mode http
+    - option httplog
+    - balance leastconn
+    - timeout client 5s
+    - timeout server 60s
+  server_options:
+    - check inter 2s
+    - rise 2
+    - fall 5
+    - maxconn 4

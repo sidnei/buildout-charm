@@ -1,0 +1,29 @@
+- nrpe_check_path: ''
+  server_options: [forceddomain=dist.plone.org]
+  servers:
+    - [dist.plone.org, 80]
+  service_name: dist.plone.org
+- nrpe_check_path: ''
+  server_options: [forceddomain=download.zope.org]
+  servers:
+    - [download.zope.org, 80]
+  service_name: download.zope.org
+- nrpe_check_path: ''
+  server_options: [forceddomain=pypi.python.org]
+  servers:
+    - [pypi.python.org, 80]
+  service_name: pypi.python.org
+- nrpe_check_path: ''
+  server_options: [forceddomain=buildthreat.appspot.com]
+  servers:
+    - [buildthreat.appspot.com, 80]
+  service_name: buildthreat.appspot.com
+- nrpe_check_path: ''
+  server_options: [forceddomain=code.google.com]
+  servers:
+    - [code.google.com, 80]
+  service_name: code.google.com
+- nrpe_check_path: ''
+  server_options: [forceddomain=launchpad.net]
+  servers: []
+  service_name: launchpad.net
